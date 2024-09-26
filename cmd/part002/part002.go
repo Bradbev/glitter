@@ -13,10 +13,16 @@ import (
 )
 
 var (
+	vertAndCol = []float32{
+		// positions         // colors
+		0.50, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
+		-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
+		0.00, 0.50, 0.0, 0.0, 0.0, 1.0, // top
+	}
 	verticies = []float32{
-		0.5, 0.5, 0.0, // top right
-		0.5, -0.5, 0.0, // bottom right
-		-0.5, -0.5, 0.0, // bottom left
+		0.5, -0.5, 0.0, // top right
+		-0.5, -0.5, 0.0, // bottom right
+		0.0, 0.5, 0.0, // bottom left
 	}
 	colors = []float32{
 		1.0, 0.0, 0.0,
@@ -31,24 +37,52 @@ var (
 )
 
 // makeGlObjects initializes and returns a vertex array from the points provided.
-func makeGlObjects(points []float32) (uint32, uint32) {
-	const bytesPerFloat = 4
-	var vertexBufferObject uint32
-	// Make 1 new buffer object
-	gl.GenBuffers(1, &vertexBufferObject)
-	// Bind the object to ARRAY_BUFFER, any operations on ARRAY_BUFFER will hit our object
-	// ie, copy the data to the GPU
-	gl.BindBuffer(gl.ARRAY_BUFFER, vertexBufferObject)
-	gl.BufferData(gl.ARRAY_BUFFER, bytesPerFloat*len(points), gl.Ptr(points), gl.STATIC_DRAW)
-
-	// VAO lets you bind different attribute setups for the VBO (?)
+func makeGlObjects() (uint32, uint32) {
+	const sizeOfFloat = 4
 	var vertexAttributeObject uint32
-	gl.GenVertexArrays(1, &vertexAttributeObject)
-	gl.BindVertexArray(vertexAttributeObject)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vertexBufferObject)
-	// vertex attrib 0, size of attrib, type of attrib, isNormalized?, stride (0=packed), initial offset
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
-	gl.EnableVertexAttribArray(0)
+	if false {
+		var vbo uint32
+		// Make 1 new buffer object
+		gl.GenBuffers(1, &vbo)
+		// Bind the object to ARRAY_BUFFER, any operations on ARRAY_BUFFER will hit our object
+		// ie, copy the data to the GPU
+		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		gl.BufferData(gl.ARRAY_BUFFER, sizeOfFloat*len(vertAndCol), gl.Ptr(vertAndCol), gl.STATIC_DRAW)
+
+		// VAO lets you bind different attribute setups for the VBO (?)
+		gl.GenVertexArrays(1, &vertexAttributeObject)
+		gl.BindVertexArray(vertexAttributeObject)
+		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		// vertex attrib 0, size of attrib, type of attrib, isNormalized?, stride (0=packed), initial offset
+		// Position attrib
+		gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, 6*sizeOfFloat, 0)
+		gl.EnableVertexAttribArray(0)
+		// color attrib
+		gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 6*sizeOfFloat, 3*sizeOfFloat)
+		gl.EnableVertexAttribArray(1)
+	} else {
+		var points_vbo uint32
+		gl.GenBuffers(1, &points_vbo)
+		gl.BindBuffer(gl.ARRAY_BUFFER, points_vbo)
+		gl.BufferData(gl.ARRAY_BUFFER, sizeOfFloat*len(verticies), gl.Ptr(verticies), gl.STATIC_DRAW)
+
+		var colors_vbo uint32
+		gl.GenBuffers(1, &colors_vbo)
+		gl.BindBuffer(gl.ARRAY_BUFFER, colors_vbo)
+		gl.BufferData(gl.ARRAY_BUFFER, sizeOfFloat*len(colors), gl.Ptr(colors), gl.STATIC_DRAW)
+
+		// VAO lets you bind different attribute setups for the VBO (?)
+		gl.GenVertexArrays(1, &vertexAttributeObject)
+		gl.BindVertexArray(vertexAttributeObject)
+
+		gl.BindBuffer(gl.ARRAY_BUFFER, points_vbo)
+		gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, 3*sizeOfFloat, 0)
+		gl.EnableVertexAttribArray(0)
+
+		gl.BindBuffer(gl.ARRAY_BUFFER, colors_vbo)
+		gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 3*sizeOfFloat, 0)
+		gl.EnableVertexAttribArray(1)
+	}
 
 	const bytesPerUint32 = 4
 	var elementBufferObject uint32
@@ -92,7 +126,7 @@ func main() {
 			log.Fatal(err)
 		}
 		p = ren.NewProgram(v, f)
-		vao, ebo = makeGlObjects(verticies)
+		vao, ebo = makeGlObjects()
 		runtime.GC()
 	}
 
