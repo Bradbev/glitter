@@ -1,8 +1,10 @@
 package ren
 
 import (
+	"fmt"
 	"io/fs"
 	"runtime"
+	"strings"
 
 	"github.com/go-gl/gl/v2.1/gl"
 )
@@ -54,11 +56,15 @@ func (p *Program) GetUniformLocation(name string) int32 {
 	return loc
 }
 
+func (p *Program) Uniform1f(name string, f1 float32) {
+	gl.Uniform1f(p.GetUniformLocation(name), f1)
+}
+
 func (p *Program) Uniform4f(name string, f1, f2, f3, f4 float32) {
 	gl.Uniform4f(p.GetUniformLocation(name), f1, f2, f3, f4)
 }
 
-func NewProgram(shaders ...*Shader) *Program {
+func NewProgram(shaders ...*Shader) (*Program, error) {
 	handle := gl.CreateProgram()
 	p := &Program{
 		Handle:   handle,
@@ -74,6 +80,29 @@ func NewProgram(shaders ...*Shader) *Program {
 		gl.AttachShader(p.Handle, s.Handle)
 	}
 	gl.LinkProgram(handle)
+	var status int32
+	gl.GetProgramiv(handle, gl.LINK_STATUS, &status)
+	if status == gl.FALSE {
+		var logLength int32
+		gl.GetProgramiv(handle, gl.INFO_LOG_LENGTH, &logLength)
+		log := strings.Repeat("\x00", int(logLength+1))
+		gl.GetProgramInfoLog(handle, logLength, nil, gl.Str(log))
 
-	return p
+		return nil, fmt.Errorf("failed to link program %v", log)
+	}
+
+	return p, nil
+}
+
+func NewProgramFS(fsys fs.FS, vertex, fragment string) (*Program, error) {
+	v, err := NewVertexShader(fsys, vertex)
+	if err != nil {
+		return nil, err
+	}
+	f, err := NewFragmentShader(fsys, fragment)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewProgram(v, f)
 }
