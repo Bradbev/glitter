@@ -8,6 +8,7 @@ import (
 	_ "image/png"
 	"io/fs"
 
+	"github.com/anthonynsimon/bild/transform"
 	"github.com/go-gl/gl/v2.1/gl"
 )
 
@@ -35,6 +36,7 @@ func NewTexture(img image.Image, wrapR, wrapS int32) (*Texture, error) {
 	if rgba.Stride != rgba.Rect.Size().X*4 {
 		return nil, fmt.Errorf("Stride does not match")
 	}
+	rgba = transform.FlipV(rgba)
 
 	tex := &Texture{}
 	gl.GenTextures(1, &tex.handle)

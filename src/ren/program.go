@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type Program struct {
@@ -56,12 +57,20 @@ func (p *Program) GetUniformLocation(name string) int32 {
 	return loc
 }
 
+func (p *Program) Uniform1i(name string, v1 int32) {
+	gl.Uniform1i(p.GetUniformLocation(name), v1)
+}
+
 func (p *Program) Uniform1f(name string, f1 float32) {
 	gl.Uniform1f(p.GetUniformLocation(name), f1)
 }
 
 func (p *Program) Uniform4f(name string, f1, f2, f3, f4 float32) {
 	gl.Uniform4f(p.GetUniformLocation(name), f1, f2, f3, f4)
+}
+
+func (p *Program) UniformMatrix4f(name string, mat mgl32.Mat4) {
+	gl.UniformMatrix4fv(p.GetUniformLocation(name), 1, false, &mat[0])
 }
 
 func NewProgram(shaders ...*Shader) (*Program, error) {
