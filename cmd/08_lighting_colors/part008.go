@@ -3,7 +3,9 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"log"
+	"os"
 	"runtime"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -12,6 +14,7 @@ import (
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/laher/mergefs"
 )
 
 var (
@@ -149,10 +152,14 @@ func showWidgetsDemo() {
 	imgui.End()
 }
 
-//go:embed *.vert *.frag *.jpg *.jpeg
-var assets embed.FS
+//go:embed *.vert *.frag
+var embeddedAssets embed.FS
+var assets fs.FS
 
 func main() {
+	assets = mergefs.Merge(embeddedAssets, //
+		os.DirFS("assets"),       // begin run from the root,
+		os.DirFS("../../assets")) // run from inside this dir,
 	a := app.Default()
 	var (
 		p       *ren.Program
@@ -165,7 +172,7 @@ func main() {
 		version := gl.GoStr(gl.GetString(gl.VERSION))
 		log.Println("OpenGL version", version)
 		var err error
-		p, err = ren.NewProgramFS(assets, "part007.vert", "part007.frag")
+		p, err = ren.NewProgramFS(assets, "part008.vert", "part008.frag")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -213,7 +220,7 @@ func main() {
 		//mgl32.Vec3{camX, 0, camZ},
 		//mgl32.Vec3{0, 0, 0},
 		//mgl32.Vec3{0, 1, 0})
-		camera.ProcessInput(dt)
+		camera.ProcessInput(a, dt)
 		view := camera.Camera.GetViewMat()
 		projection := camera.Camera.GetProjectionMat(float32(sx), float32(sy))
 		//projection := mgl32.Perspective(mgl32.DegToRad(fov), float32(sx)/float32(sy), 0.1, 100)

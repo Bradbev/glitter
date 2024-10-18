@@ -5,13 +5,12 @@ import (
 	"runtime"
 	"time"
 
-	imgui "github.com/AllenDang/cimgui-go"
 	"github.com/AllenDang/cimgui-go/backend"
 	"github.com/AllenDang/cimgui-go/backend/sdlbackend"
+	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 type App struct {
@@ -39,6 +38,10 @@ func (a *App) RunNoDt(loop func()) {
 	a.Run(func(dt float32) {
 		loop()
 	})
+}
+
+func (a *App) SetMousePos(x, y float32) {
+	a.backend.SetCursorPos(float64(x), float64(y))
 }
 
 func (a *App) Run(loop func(dt float32)) {
@@ -99,7 +102,7 @@ type ImguiCamera struct {
 	mouseDown    bool
 }
 
-func (c *ImguiCamera) ProcessInput(dt float32) {
+func (c *ImguiCamera) ProcessInput(app *App, dt float32) {
 	cam := c.Camera
 	speed := c.Speed * dt
 	right := cam.Forward.Cross(cam.Up).Normalize()
@@ -133,8 +136,9 @@ func (c *ImguiCamera) ProcessInput(dt float32) {
 		if c.mouseDown {
 			mousePos := mousePos()
 			delta := c.mousePos.Sub(mousePos).Mul(c.MouseSpeed)
-			sdl.WarpMouseGlobal(int32(c.mousePos.X()), int32(c.mousePos.Y()))
-			//	c.mousePos = mousePos
+			//sdl.WarpMouseGlobal(int32(c.mousePos.X()), int32(c.mousePos.Y()))
+			app.SetMousePos(c.mousePos.X(), c.mousePos.Y())
+			//c.mousePos = mousePos
 			rot := mgl32.QuatRotate(mgl32.DegToRad(delta.X()*dt), mgl32.Vec3{0, 0, 1})
 			cam.Forward = rot.Rotate(cam.Forward).Normalize()
 			rot = mgl32.QuatRotate(mgl32.DegToRad(delta.Y()*dt), right)
@@ -147,7 +151,9 @@ func (c *ImguiCamera) ProcessInput(dt float32) {
 }
 
 func mousePos() mgl32.Vec2 {
-	mx, my, _ := sdl.GetGlobalMouseState()
+	p := imgui.MousePos()
+	mx, my := p.X, p.Y
+	//mx, my, _ := sdl.GetGlobalMouseState()
 	return mgl32.Vec2{
 		float32(mx),
 		float32(my),

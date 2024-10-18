@@ -19,7 +19,7 @@ type Texture struct {
 func NewTextureFS(fsys fs.FS, filename string, wrapR, wrapS int32) (*Texture, error) {
 	imgFile, err := fsys.Open(filename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Missing %s : %w", filename, err)
 	}
 	defer imgFile.Close()
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"image"
 
-	imgui "github.com/AllenDang/cimgui-go"
 	"github.com/AllenDang/cimgui-go/backend"
 	"github.com/AllenDang/cimgui-go/backend/sdlbackend"
+	"github.com/AllenDang/cimgui-go/imgui"
 
 	"github.com/Bradbev/glitter/src/app"
 )

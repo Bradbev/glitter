@@ -4,7 +4,7 @@ import (
 	"embed"
 	"log"
 
-	imgui "github.com/AllenDang/cimgui-go"
+	"github.com/AllenDang/cimgui-go/imgui"
 
 	"github.com/Bradbev/glitter/src/app"
 	"github.com/Bradbev/glitter/src/ren"
