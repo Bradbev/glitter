@@ -87,7 +87,7 @@ func main() {
 		vao, ebo = makeGlObjects(verticies)
 	}
 
-	a.Run(func() {
+	a.RunNoDt(func() {
 		d := false
 		imgui.ShowDemoWindowV(&d)
 		x, y := a.GetSize()

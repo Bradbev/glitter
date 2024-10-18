@@ -14,5 +14,6 @@ require (
 
 require (
 	github.com/go-gl/mathgl v1.1.0 // indirect
+	github.com/veandco/go-sdl2 v0.4.40 // indirect
 	golang.org/x/image v0.18.0 // indirect
 )

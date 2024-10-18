@@ -99,7 +99,7 @@ func main() {
 		runtime.GC()
 	}
 
-	a.Run(func() {
+	a.RunNoDt(func() {
 		ren.GarbageCollect()
 
 		showWidgetsDemo()

@@ -128,5 +128,5 @@ func main() {
 	a.OnPostCreate = afterCreateContext
 	a.OnBeforeDestroy = beforeDestroyContext
 	a.Icons = img
-	a.Run(loop)
+	a.RunNoDt(loop)
 }

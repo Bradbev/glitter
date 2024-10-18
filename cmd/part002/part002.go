@@ -127,7 +127,7 @@ func main() {
 	}
 	_ = vaoHandle
 
-	a.Run(func() {
+	a.RunNoDt(func() {
 		ren.GarbageCollect()
 
 		showWidgetsDemo()

@@ -3,11 +3,15 @@ package app
 import (
 	"image"
 	"runtime"
+	"time"
 
 	imgui "github.com/AllenDang/cimgui-go"
 	"github.com/AllenDang/cimgui-go/backend"
 	"github.com/AllenDang/cimgui-go/backend/sdlbackend"
+	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/go-gl/mathgl/mgl32"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type App struct {
@@ -31,7 +35,13 @@ func (a *App) GetSize() (int32, int32) {
 	return a.backend.DisplaySize()
 }
 
-func (a *App) Run(loop func()) {
+func (a *App) RunNoDt(loop func()) {
+	a.Run(func(dt float32) {
+		loop()
+	})
+}
+
+func (a *App) Run(loop func(dt float32)) {
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -53,7 +63,12 @@ func (a *App) Run(loop func()) {
 	be.SetBeforeRenderHook(a.OnBeforeRender)
 	be.SetAfterRenderHook(a.OnPostRender)
 
-	be.Run(loop)
+	loopTime := time.Now()
+	be.Run(func() {
+		dt := float32(time.Now().Sub(loopTime)) / float32(time.Second)
+		loopTime = time.Now()
+		loop(dt)
+	})
 }
 
 func nop() {}
@@ -72,5 +87,77 @@ func Default() *App {
 		Width:       1200,
 		Height:      900,
 		BgColor:     imgui.NewVec4(0.45, 0.55, 0.6, 1.0),
+	}
+}
+
+type ImguiCamera struct {
+	Camera       *ren.Camera
+	Speed        float32
+	MouseSpeed   float32
+	LastMousePos mgl32.Vec2
+	mousePos     mgl32.Vec2
+	mouseDown    bool
+}
+
+func (c *ImguiCamera) ProcessInput(dt float32) {
+	cam := c.Camera
+	speed := c.Speed * dt
+	right := cam.Forward.Cross(cam.Up).Normalize()
+	forward2D := cam.Forward.Mul(speed)
+	if imgui.IsKeyDown(imgui.KeyA) {
+		cam.Position = cam.Position.Sub(right.Mul(speed))
+	}
+	if imgui.IsKeyDown(imgui.KeyD) {
+		cam.Position = cam.Position.Add(right.Mul(speed))
+	}
+	if imgui.IsKeyDown(imgui.KeyW) {
+		cam.Position = cam.Position.Add(forward2D)
+	}
+	if imgui.IsKeyDown(imgui.KeyS) {
+		cam.Position = cam.Position.Sub(forward2D)
+	}
+	up := cam.Up.Mul(speed)
+	if imgui.IsKeyDown(imgui.KeyE) {
+		cam.Position = cam.Position.Add(up)
+	}
+	if imgui.IsKeyDown(imgui.KeyQ) {
+		cam.Position = cam.Position.Sub(up)
+	}
+	anyWindowFocused := imgui.IsWindowFocusedV(imgui.FocusedFlagsAnyWindow)
+	if !anyWindowFocused {
+		// the first click on a window will enter this path as the window
+		// is not yet focused
+		if imgui.IsMouseDown(imgui.MouseButtonLeft) && !c.mouseDown {
+			c.mousePos = mousePos()
+		}
+		if c.mouseDown {
+			mousePos := mousePos()
+			delta := c.mousePos.Sub(mousePos).Mul(c.MouseSpeed)
+			sdl.WarpMouseGlobal(int32(c.mousePos.X()), int32(c.mousePos.Y()))
+			//	c.mousePos = mousePos
+			rot := mgl32.QuatRotate(mgl32.DegToRad(delta.X()*dt), mgl32.Vec3{0, 0, 1})
+			cam.Forward = rot.Rotate(cam.Forward).Normalize()
+			rot = mgl32.QuatRotate(mgl32.DegToRad(delta.Y()*dt), right)
+			cam.Forward = rot.Rotate(cam.Forward).Normalize()
+		}
+		c.mouseDown = imgui.IsMouseDown(imgui.MouseButtonLeft)
+	} else {
+		c.mouseDown = false
+	}
+}
+
+func mousePos() mgl32.Vec2 {
+	mx, my, _ := sdl.GetGlobalMouseState()
+	return mgl32.Vec2{
+		float32(mx),
+		float32(my),
+	}
+}
+
+func NewCamera() *ImguiCamera {
+	return &ImguiCamera{
+		Camera:     ren.NewCamera(),
+		Speed:      1,
+		MouseSpeed: 10,
 	}
 }
