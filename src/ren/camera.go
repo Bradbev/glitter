@@ -9,6 +9,9 @@ type Camera struct {
 	Fov      float32
 	NearClip float32
 	FarClip  float32
+
+	view       mgl32.Mat4
+	projection mgl32.Mat4
 }
 
 func NewCamera() *Camera {
@@ -19,6 +22,19 @@ func NewCamera() *Camera {
 		NearClip: 0.1,
 		FarClip:  100,
 	}
+}
+
+func (c *Camera) LookAt(location mgl32.Vec3) {
+	c.Forward = location.Sub(c.Position).Normalize()
+}
+
+func (c *Camera) CacheMatricies(screenX, screenY float32) {
+	c.view = c.GetViewMat()
+	c.projection = c.GetProjectionMat(screenX, screenY)
+}
+
+func (c *Camera) GetMatrices() (view mgl32.Mat4, projection mgl32.Mat4) {
+	return c.view, c.projection
 }
 
 func (c *Camera) GetViewMat() mgl32.Mat4 {

@@ -1,6 +1,7 @@
 package ren
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"runtime"
@@ -9,6 +10,9 @@ import (
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
+
+//go:embed shaders
+var embeddedShaders embed.FS
 
 type Program struct {
 	Handle   uint32
@@ -63,6 +67,10 @@ func (p *Program) Uniform1i(name string, v1 int32) {
 
 func (p *Program) Uniform1f(name string, f1 float32) {
 	gl.Uniform1f(p.GetUniformLocation(name), f1)
+}
+
+func (p *Program) Uniform3f(name string, f1, f2, f3 float32) {
+	gl.Uniform3f(p.GetUniformLocation(name), f1, f2, f3)
 }
 
 func (p *Program) Uniform4f(name string, f1, f2, f3, f4 float32) {
