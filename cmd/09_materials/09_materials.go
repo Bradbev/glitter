@@ -227,8 +227,18 @@ func main() {
 		cubeShader.UniformMatrix4f("projection", projection)
 		cubeShader.UniformMatrix4f("view", view)
 		cubeShader.UniformVec3("objectColor", objColor)
+
+		cubeShader.UniformVec3("light.ambient", mgl32.Vec3{0.2, 0.2, 0.2})
+		cubeShader.UniformVec3("light.diffuse", mgl32.Vec3{0.5, 0.5, 0.5}) // darken diffuse light a bit
+		cubeShader.UniformVec3("light.specular", mgl32.Vec3{1.0, 1.0, 1.0})
+		cubeShader.UniformVec3("light.position", lightPos)
+
+		cubeShader.UniformVec3("material.ambient", mgl32.Vec3{1.0, 0.5, 0.31})
+		cubeShader.UniformVec3("material.diffuse", mgl32.Vec3{1.0, 0.5, 0.31})
+		cubeShader.UniformVec3("material.specular", mgl32.Vec3{0.5, 0.5, 0.5})
+		cubeShader.Uniform1f("material.shininess", 32.0)
+
 		cubeShader.UniformVec3("lightColor", lightColor)
-		cubeShader.UniformVec3("lightPos", lightPos)
 		cubeShader.UniformVec3("viewPos", camera.Camera.Position)
 		// render the normal cube
 		model = mgl32.HomogRotate3DZ(mgl32.DegToRad(rotation))

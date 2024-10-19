@@ -73,6 +73,10 @@ func (p *Program) Uniform3f(name string, f1, f2, f3 float32) {
 	gl.Uniform3f(p.GetUniformLocation(name), f1, f2, f3)
 }
 
+func (p *Program) UniformVec3(name string, v mgl32.Vec3) {
+	gl.Uniform3f(p.GetUniformLocation(name), v[0], v[1], v[2])
+}
+
 func (p *Program) Uniform4f(name string, f1, f2, f3, f4 float32) {
 	gl.Uniform4f(p.GetUniformLocation(name), f1, f2, f3, f4)
 }
