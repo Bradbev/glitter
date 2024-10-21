@@ -111,6 +111,49 @@ var (
 		0.0, 0.0, 1.0,
 		0.0, 0.0, 1.0,
 	}
+	texCoords = []float32{
+		0.0, 0.0,
+		1.0, 0.0,
+		1.0, 1.0,
+		1.0, 1.0,
+		0.0, 1.0,
+		0.0, 0.0,
+
+		0.0, 0.0,
+		1.0, 0.0,
+		1.0, 1.0,
+		1.0, 1.0,
+		0.0, 1.0,
+		0.0, 0.0,
+
+		1.0, 0.0,
+		1.0, 1.0,
+		0.0, 1.0,
+		0.0, 1.0,
+		0.0, 0.0,
+		1.0, 0.0,
+
+		1.0, 0.0,
+		1.0, 1.0,
+		0.0, 1.0,
+		0.0, 1.0,
+		0.0, 0.0,
+		1.0, 0.0,
+
+		0.0, 1.0,
+		1.0, 1.0,
+		1.0, 0.0,
+		1.0, 0.0,
+		0.0, 0.0,
+		0.0, 1.0,
+
+		0.0, 1.0,
+		1.0, 1.0,
+		1.0, 0.0,
+		1.0, 0.0,
+		0.0, 0.0,
+		0.0, 1.0,
+	}
 
 	showDemoWindow  bool
 	lightColor              = [3]float32{1, 1, 1}
@@ -160,15 +203,24 @@ func showWidgetsDemo(camera *ren.Camera) {
 var embeddedAssets embed.FS
 var assets fs.FS
 
+func must[T any](t T, err error) T {
+	if err != nil {
+		log.Fatal(err)
+	}
+	return t
+}
+
 func main() {
 	assets = mergefs.Merge(embeddedAssets, //
 		os.DirFS("assets"),       // begin run from the root,
 		os.DirFS("../../assets")) // run from inside this dir,
 	a := app.Default()
 	var (
-		cubeShader *ren.Program
-		lampShader *ren.Program
-		lightVao   *ren.VertexAttribObject
+		cubeShader    *ren.Program
+		lampShader    *ren.Program
+		lightVao      *ren.VertexAttribObject
+		container     *ren.Texture
+		containerSpec *ren.Texture
 	)
 	camera := app.NewCamera()
 	camera.Camera.Position = mgl32.Vec3{3, 2, 0}
@@ -178,14 +230,14 @@ func main() {
 		version := gl.GoStr(gl.GetString(gl.VERSION))
 		log.Println("OpenGL version", version)
 		var err error
-		cubeShader, err = ren.NewProgramFS(assets, "vertex.vert", "fragment.frag")
-		if err != nil {
-			log.Fatal(err)
-		}
+		container = must(ren.NewTextureFS(assets, "container2.png", gl.REPEAT, gl.REPEAT))
+		containerSpec = must(ren.NewTextureFS(assets, "container2_specular.png", gl.REPEAT, gl.REPEAT))
+		cubeShader = must(ren.NewProgramFS(assets, "vertex.vert", "fragment.frag"))
 
 		lightVao = ren.NewVertexAttribObject()
 		lightVao.Float32AttribData(lightVao.NextSlot(), 3, cube, gl.STATIC_DRAW)
 		lightVao.Float32AttribData(lightVao.NextSlot(), 3, normals, gl.STATIC_DRAW)
+		lightVao.Float32AttribData(lightVao.NextSlot(), 2, texCoords, gl.STATIC_DRAW)
 
 		lampShader, err = ren.NewProgramFS(assets, "vertex.vert", "cube.frag")
 		if err != nil {
@@ -223,6 +275,7 @@ func main() {
 		lampShader.UniformMatrix4f("model", model)
 		gl.DrawArrays(gl.TRIANGLES, 0, 36)
 
+		// render the normal cube
 		cubeShader.UseProgram()
 		cubeShader.UniformMatrix4f("projection", projection)
 		cubeShader.UniformMatrix4f("view", view)
@@ -233,14 +286,15 @@ func main() {
 		cubeShader.UniformVec3("light.specular", mgl32.Vec3{1.0, 1.0, 1.0})
 		cubeShader.UniformVec3("light.position", lightPos)
 
-		cubeShader.UniformVec3("material.ambient", mgl32.Vec3{1.0, 0.5, 0.31})
-		cubeShader.UniformVec3("material.diffuse", mgl32.Vec3{1.0, 0.5, 0.31})
-		cubeShader.UniformVec3("material.specular", mgl32.Vec3{0.5, 0.5, 0.5})
-		cubeShader.Uniform1f("material.shininess", 32.0)
+		container.Bind(gl.TEXTURE0)
+		containerSpec.Bind(gl.TEXTURE1)
+		cubeShader.Uniform1i("material.diffuse", 0)
+		cubeShader.Uniform1i("material.specular", 1)
+		//cubeShader.UniformVec3("material.specular", mgl32.Vec3{0.5, 0.5, 0.5})
+		cubeShader.Uniform1f("material.shininess", 64.0)
 
 		cubeShader.UniformVec3("lightColor", lightColor)
 		cubeShader.UniformVec3("viewPos", camera.Camera.Position)
-		// render the normal cube
 		model = mgl32.HomogRotate3DZ(mgl32.DegToRad(rotation))
 		cubeShader.UniformMatrix4f("model", model)
 		gl.DrawArrays(gl.TRIANGLES, 0, 36)
