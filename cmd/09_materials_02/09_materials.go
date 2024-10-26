@@ -12,6 +12,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 
 	"github.com/Bradbev/glitter/src/app"
+	"github.com/Bradbev/glitter/src/imguix"
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
@@ -178,8 +179,12 @@ func showWidgetsDemo(camera *ren.Camera) {
 	imgui.SetNextWindowSizeV(imgui.NewVec2(300, 400), imgui.CondOnce)
 	imgui.Begin("Window 1")
 	imgui.Checkbox("Show demo window", &showDemoWindow)
-	imgui.ColorEdit3("Obj", &objColor)
-	imgui.ColorEdit3("Light", &lightColor)
+
+	imguix.TreeNode("Group", func() {
+		imgui.ColorEdit3("Obj", &objColor)
+		imgui.ColorEdit3("Light", &lightColor)
+	})
+
 	imgui.SliderFloat3("LightPos", &lightPos, -2, 2)
 	imgui.SliderFloat("Blend", &blend, 0, 1)
 	imgui.SliderFloat("Scale", &scale, 0, 1)
