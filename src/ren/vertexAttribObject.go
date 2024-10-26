@@ -1,6 +1,6 @@
 package ren
 
-import "github.com/go-gl/gl/v2.1/gl"
+import "github.com/go-gl/gl/v4.1-core/gl"
 
 type VertexAttribObject struct {
 	Handle         uint32

@@ -11,7 +11,7 @@ import (
 
 	"github.com/Bradbev/glitter/src/app"
 	"github.com/Bradbev/glitter/src/ren"
-	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
 

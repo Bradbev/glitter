@@ -210,6 +210,31 @@ func must[T any](t T, err error) T {
 	return t
 }
 
+type Light struct {
+	Position mgl32.Vec3
+	Ambient  mgl32.Vec3
+	Diffuse  mgl32.Vec3
+	Specular mgl32.Vec3
+}
+
+var light = &Light{
+	Ambient:  mgl32.Vec3{0.2, 0.2, 0.2},
+	Diffuse:  mgl32.Vec3{0.5, 0.5, 0.5},
+	Specular: mgl32.Vec3{1.0, 1.0, 1.0},
+}
+
+type Material struct {
+	Diffuse   int32
+	Specular  int32
+	Shininess float32
+}
+
+var mat = &Material{
+	Diffuse:   0,
+	Specular:  1,
+	Shininess: 64,
+}
+
 func main() {
 	assets = mergefs.Merge(embeddedAssets, //
 		os.DirFS("assets"),       // begin run from the root,
@@ -262,8 +287,6 @@ func main() {
 		camera.ProcessInput(a, dt)
 		camera.Camera.CacheMatricies(float32(sx), float32(sy))
 		view, projection := camera.Camera.GetMatrices()
-		//view := camera.Camera.GetViewMat()
-		//projection := camera.Camera.GetProjectionMat(float32(sx), float32(sy))
 
 		// binding the vao also binds the ebo
 		lightVao.Enable()
@@ -283,19 +306,13 @@ func main() {
 		cubeShader.UniformMatrix4f("view", view)
 		cubeShader.UniformVec3("objectColor", objColor)
 
-		cubeShader.UniformVec3("light.ambient", mgl32.Vec3{0.2, 0.2, 0.2})
-		cubeShader.UniformVec3("light.diffuse", mgl32.Vec3{0.5, 0.5, 0.5}) // darken diffuse light a bit
-		cubeShader.UniformVec3("light.specular", mgl32.Vec3{1.0, 1.0, 1.0})
-		cubeShader.UniformVec3("light.position", lightPos)
+		light.Position = lightPos
+		cubeShader.UniformStruct("light", light)
 
 		container.Bind(gl.TEXTURE0)
 		containerSpec.Bind(gl.TEXTURE1)
-		cubeShader.Uniform1i("material.diffuse", 0)
-		cubeShader.Uniform1i("material.specular", 1)
-		//cubeShader.UniformVec3("material.specular", mgl32.Vec3{0.5, 0.5, 0.5})
-		cubeShader.Uniform1f("material.shininess", 64.0)
+		cubeShader.UniformStruct("material", mat)
 
-		cubeShader.UniformVec3("lightColor", lightColor)
 		cubeShader.UniformVec3("viewPos", camera.Camera.Position)
 		model = mgl32.HomogRotate3DZ(mgl32.DegToRad(rotation))
 		cubeShader.UniformMatrix4f("model", model)

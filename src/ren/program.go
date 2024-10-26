@@ -4,19 +4,30 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"reflect"
 	"runtime"
 	"strings"
+	"unsafe"
 
-	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
 //go:embed shaders
 var embeddedShaders embed.FS
 
+type uniformFunc func(name string, structPtr unsafe.Pointer)
+
 type Program struct {
-	Handle   uint32
-	uniforms map[string]int32
+	// handle is the gl handle returned from CreateProgram
+	handle uint32
+
+	// uniformLocations is a cache over gl.GetUniformLocation
+	uniformLocations map[string]int32
+
+	// structCache maps from a struct to a function that can be called
+	// to load the members of the struct into uniforms
+	structCache map[reflect.Type]uniformFunc
 }
 
 type Shader struct {
@@ -31,7 +42,7 @@ func makeShader(handle uint32, e error) (*Shader, error) {
 	runtime.SetFinalizer(s, func(s *Shader) {
 		handle := s.Handle
 		onMainThread(func() {
-			println("Deleting shader", handle)
+			//println("Deleting shader", handle)
 			gl.DeleteShader(handle)
 		})
 	})
@@ -48,16 +59,16 @@ func NewFragmentShader(fsys fs.FS, filename string) (*Shader, error) {
 }
 
 func (p *Program) UseProgram() {
-	gl.UseProgram(p.Handle)
+	gl.UseProgram(p.handle)
 }
 
 func (p *Program) GetUniformLocation(name string) int32 {
-	if loc, ok := p.uniforms[name]; ok {
+	if loc, ok := p.uniformLocations[name]; ok {
 		return loc
 	}
 
-	loc := gl.GetUniformLocation(p.Handle, gl.Str(name+"\x00"))
-	p.uniforms[name] = loc
+	loc := gl.GetUniformLocation(p.handle, gl.Str(name+"\x00"))
+	p.uniformLocations[name] = loc
 	return loc
 }
 
@@ -85,20 +96,97 @@ func (p *Program) UniformMatrix4f(name string, mat mgl32.Mat4) {
 	gl.UniformMatrix4fv(p.GetUniformLocation(name), 1, false, &mat[0])
 }
 
+// UniformStruct iterates the struct toLoad and loads uniforms from that
+// struct into name by joining the field names for gl, ie name.Field1
+// Fields in the struct need to be public
+// A cache is used so that the struct only needs to be reflected once.
+func (p *Program) UniformStruct(name string, toLoad any) {
+	f, ok := p.structCache[reflect.TypeOf(toLoad).Elem()]
+	if !ok {
+		f = p.buildCacheEntry(toLoad)
+	}
+	f(name, reflect.ValueOf(toLoad).UnsafePointer())
+}
+
+// the private load* functions build a uniformFunc for the given type
+func loadVec3(p *Program, fieldName string, offset uintptr) uniformFunc {
+	return func(name string, structPtr unsafe.Pointer) {
+		base := unsafe.Add(structPtr, offset)
+		v := (*mgl32.Vec3)(base)
+		p.UniformVec3(name+"."+fieldName, *v)
+	}
+}
+
+func loadInt32(p *Program, fieldName string, offset uintptr) uniformFunc {
+	return func(name string, structPtr unsafe.Pointer) {
+		base := unsafe.Add(structPtr, offset)
+		i := (*int32)(base)
+		p.Uniform1i(name+"."+fieldName, *i)
+	}
+}
+
+func loadFloat32(p *Program, fieldName string, offset uintptr) uniformFunc {
+	return func(name string, structPtr unsafe.Pointer) {
+		base := unsafe.Add(structPtr, offset)
+		i := (*float32)(base)
+		p.Uniform1f(name+"."+fieldName, *i)
+	}
+}
+
+// buildCacheEntry reflects over toLoad and builds a function
+// that allows that struct type to be loaded to a shader program.
+func (p *Program) buildCacheEntry(toLoad any) uniformFunc {
+	ptrTyp := reflect.TypeOf(toLoad)
+	if ptrTyp.Kind() != reflect.Pointer {
+		panic("must pass in a pointer")
+	}
+	typ := ptrTyp.Elem()
+	if typ.Kind() != reflect.Struct {
+		panic("pointer must be to a struct")
+	}
+
+	typeOf := reflect.TypeOf
+	funcs := map[reflect.Type]func(p *Program, name string, offset uintptr) uniformFunc{
+		typeOf(mgl32.Vec3{}): loadVec3,
+		typeOf(float32(0)):   loadFloat32,
+		typeOf(int32(0)):     loadInt32,
+	}
+
+	toCall := []uniformFunc{}
+
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		name := field.Name
+		f, ok := funcs[field.Type]
+		if !ok {
+			panic("unknown type " + field.Type.String())
+		}
+		toCall = append(toCall, f(p, name, field.Offset))
+	}
+	ret := func(name string, structPtr unsafe.Pointer) {
+		for _, f := range toCall {
+			f(name, structPtr)
+		}
+	}
+	p.structCache[typ] = ret
+	return ret
+}
+
 func NewProgram(shaders ...*Shader) (*Program, error) {
 	handle := gl.CreateProgram()
 	p := &Program{
-		Handle:   handle,
-		uniforms: map[string]int32{},
+		handle:           handle,
+		uniformLocations: map[string]int32{},
+		structCache:      map[reflect.Type]uniformFunc{},
 	}
 	runtime.SetFinalizer(p, func(p *Program) {
-		handle := p.Handle
+		handle := p.handle
 		onMainThread(func() {
 			gl.DeleteProgram(handle)
 		})
 	})
 	for _, s := range shaders {
-		gl.AttachShader(p.Handle, s.Handle)
+		gl.AttachShader(p.handle, s.Handle)
 	}
 	gl.LinkProgram(handle)
 	var status int32
