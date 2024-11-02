@@ -5,11 +5,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "08",
+			"name": "10",
 			"type": "go",
 			"request": "launch",
 			"mode": "debug",
-			"program": "cmd/08_lighting_colors/08_lighting_colors.go",
+			"program": "cmd/10_multilights/10_multilights.go",
 			"cwd": "${workspaceFolder}"
 		}
 	]
