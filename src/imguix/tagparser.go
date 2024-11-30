@@ -26,6 +26,7 @@ const (
 	tBraceClose
 	tQuote
 	tComma
+	tNegative
 )
 
 type tagParser struct {
@@ -78,14 +79,19 @@ func (t *tagParser) expectKeyword() string {
 
 func (t *tagParser) expectFloat() float64 {
 	defer t.stream.GoNext()
+	sign := 1.0
+	if t.maybe(tNegative) {
+		sign = -1.0
+	}
 	tok := t.stream.CurrentToken()
+
 	if tok.Is(tokenizer.TokenInteger) {
-		return float64(tok.ValueInt64())
+		return sign * float64(tok.ValueInt64())
 	}
 	if !tok.Is(tokenizer.TokenFloat) {
 		t.endWithError(fmt.Errorf("expected a float for the name, but got %v", tok))
 	}
-	return tok.ValueFloat64()
+	return sign * tok.ValueFloat64()
 }
 
 func (t *tagParser) peek(key tokenizer.TokenKey) bool {
@@ -145,6 +151,7 @@ func newTagParser() *tagParser {
 	t := *tokenizer.New()
 	t.DefineTokens(tSeparator, []string{":"})
 	t.DefineTokens(tComma, []string{","})
+	t.DefineTokens(tNegative, []string{"-"})
 	t.DefineTokens(tBraceOpen, []string{"{"})
 	t.DefineTokens(tBraceClose, []string{"}"})
 	t.DefineStringToken(tQuote, `"`, `"`).SetEscapeSymbol(tokenizer.BackSlash)

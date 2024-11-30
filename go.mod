@@ -6,6 +6,8 @@ toolchain go1.23.1
 
 replace github.com/AllenDang/cimgui-go v0.0.0 => /Users/bradbeveridge/dev2/forks/cimgui-go
 
+replace github.com/bloeys/assimp-go/asig => /Users/bradbeveridge/dev2/forks/assimp-go
+
 require (
 	github.com/AllenDang/cimgui-go v0.0.0
 	github.com/anthonynsimon/bild v0.14.0
@@ -15,6 +17,8 @@ require (
 )
 
 require (
+	github.com/bloeys/assimp-go/asig v0.0.0-00010101000000-000000000000 // indirect
+	github.com/bloeys/gglm v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

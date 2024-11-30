@@ -10,8 +10,10 @@ import (
 	"runtime"
 
 	"github.com/AllenDang/cimgui-go/imgui"
+	"github.com/bloeys/assimp-go/asig/asig"
 
 	"github.com/Bradbev/glitter/src/app"
+	"github.com/Bradbev/glitter/src/asset"
 	"github.com/Bradbev/glitter/src/imguix"
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -299,6 +301,8 @@ func main() {
 	var (
 		cubeShader    *ren.Program
 		lampShader    *ren.Program
+		objShader     *ren.Program
+		scene         *ren.Scene
 		lightVao      *ren.VertexAttribObject
 		container     *ren.Texture
 		containerSpec *ren.Texture
@@ -310,7 +314,7 @@ func main() {
 	a.OnPostCreate = func() {
 		version := gl.GoStr(gl.GetString(gl.VERSION))
 		log.Println("OpenGL version", version)
-		var err error
+
 		container = must(ren.NewTextureFS(assets, "container2.png", gl.REPEAT, gl.REPEAT))
 		containerSpec = must(ren.NewTextureFS(assets, "container2_specular.png", gl.REPEAT, gl.REPEAT))
 		cubeShader = must(ren.NewProgramFS(assets, "vertex.vert", "fragment.frag"))
@@ -320,10 +324,16 @@ func main() {
 		lightVao.Float32AttribData(lightVao.NextSlot(), 3, normals, gl.STATIC_DRAW)
 		lightVao.Float32AttribData(lightVao.NextSlot(), 2, texCoords, gl.STATIC_DRAW)
 
-		lampShader, err = ren.NewProgramFS(assets, "vertex.vert", "cube.frag")
-		if err != nil {
-			log.Fatal(err)
-		}
+		lampShader = must(ren.NewProgramFS(assets, "vertex.vert", "cube.frag"))
+		objShader = must(ren.NewProgramFS(assets, "vertex.vert", "obj.frag"))
+
+		_ = lampShader
+		_ = container
+		_ = containerSpec
+		_ = cubeShader
+
+		scene = must(asset.ImportFile("/Users/bradbeveridge/dev2/3rdparty/LearnOpenGL/resources/objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
+		scene.Setup()
 
 		runtime.GC()
 		gl.Enable(gl.DEPTH_TEST)
@@ -331,7 +341,7 @@ func main() {
 
 	a.Run(func(dt float32) {
 		ren.GarbageCollect()
-		grey := float32(0.2)
+		grey := float32(0.05)
 		gl.ClearColor(grey, grey, grey, 0)
 		gl.Clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT)
 
@@ -344,41 +354,51 @@ func main() {
 		camera.Camera.CacheMatricies(float32(sx), float32(sy))
 		view, projection := camera.Camera.GetMatrices()
 
-		// binding the vao also binds the ebo
-		lightVao.Enable()
+		/*
+			// binding the vao also binds the ebo
+			lightVao.Enable()
 
-		// show the point lights
-		for _, l := range pointLights {
-			model := mgl32.Translate3D(l.Position[0], l.Position[1], l.Position[2])
-			model = model.Mul4(mgl32.Scale3D(0.2, 0.2, 0.2))
-			lampShader.UseProgram()
-			lampShader.UniformMatrix4f("projection", projection)
-			lampShader.UniformMatrix4f("view", view)
-			lampShader.UniformMatrix4f("model", model)
-			gl.DrawArrays(gl.TRIANGLES, 0, 36)
-		}
-
-		// render the normal cube(s)
-		for _, pos := range cubePositions {
-			cubeShader.UseProgram()
-			model := mgl32.Translate3D(pos[0], pos[1], pos[2])
-			model = model.Mul4(mgl32.HomogRotate3DZ(mgl32.DegToRad(rotation)))
-			cubeShader.UniformMatrix4f("model", model)
-			cubeShader.UniformMatrix4f("view", view)
-			cubeShader.UniformMatrix4f("projection", projection)
-
-			cubeShader.UniformVec3("viewPos", camera.Camera.Position) // for specular
-
-			for i, l := range pointLights {
-				cubeShader.UniformStruct(fmt.Sprintf("pointLights[%d]", i), &l)
+			// show the point lights
+			for _, l := range pointLights {
+				model := mgl32.Translate3D(l.Position[0], l.Position[1], l.Position[2])
+				model = model.Mul4(mgl32.Scale3D(0.2, 0.2, 0.2))
+				lampShader.UseProgram()
+				lampShader.UniformMatrix4f("projection", projection)
+				lampShader.UniformMatrix4f("view", view)
+				lampShader.UniformMatrix4f("model", model)
+				gl.DrawArrays(gl.TRIANGLES, 0, 36)
 			}
-			cubeShader.UniformStruct("directionalLight", &directionalLight)
 
-			container.Bind(gl.TEXTURE0)
-			containerSpec.Bind(gl.TEXTURE1)
-			cubeShader.UniformStruct("material", mat)
+			// render the normal cube(s)
+			for _, pos := range cubePositions {
+				cubeShader.UseProgram()
+				model := mgl32.Translate3D(pos[0], pos[1], pos[2])
+				model = model.Mul4(mgl32.HomogRotate3DZ(mgl32.DegToRad(rotation)))
+				cubeShader.UniformMatrix4f("model", model)
+				cubeShader.UniformMatrix4f("view", view)
+				cubeShader.UniformMatrix4f("projection", projection)
 
-			gl.DrawArrays(gl.TRIANGLES, 0, 36)
-		}
+				cubeShader.UniformVec3("viewPos", camera.Camera.Position) // for specular
+
+				for i, l := range pointLights {
+					cubeShader.UniformStruct(fmt.Sprintf("pointLights[%d]", i), &l)
+				}
+				cubeShader.UniformStruct("directionalLight", &directionalLight)
+
+				container.Bind(gl.TEXTURE0)
+				containerSpec.Bind(gl.TEXTURE1)
+				cubeShader.UniformStruct("material", mat)
+
+				gl.DrawArrays(gl.TRIANGLES, 0, 36)
+			}
+		*/
+
+		objShader.UseProgram()
+		model := mgl32.Translate3D(0, 0, 0)
+		objShader.UniformMatrix4f("model", model)
+		objShader.UniformMatrix4f("view", view)
+		objShader.UniformMatrix4f("projection", projection)
+		scene.Draw(objShader)
+
 	})
 }

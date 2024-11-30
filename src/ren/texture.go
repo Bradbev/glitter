@@ -8,7 +8,6 @@ import (
 	_ "image/png"
 	"io/fs"
 
-	"github.com/anthonynsimon/bild/transform"
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
@@ -16,7 +15,12 @@ type Texture struct {
 	handle uint32
 }
 
+var texCache = map[string]*Texture{}
+
 func NewTextureFS(fsys fs.FS, filename string, wrapR, wrapS int32) (*Texture, error) {
+	if tex, ok := texCache[filename]; ok {
+		return tex, nil
+	}
 	imgFile, err := fsys.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Missing %s : %w", filename, err)
@@ -27,7 +31,11 @@ func NewTextureFS(fsys fs.FS, filename string, wrapR, wrapS int32) (*Texture, er
 	if err != nil {
 		return nil, err
 	}
-	return NewTexture(img, wrapR, wrapS)
+	tex, err := NewTexture(img, wrapR, wrapS)
+	if err == nil {
+		texCache[filename] = tex
+	}
+	return tex, err
 }
 
 func NewTexture(img image.Image, wrapR, wrapS int32) (*Texture, error) {
@@ -36,7 +44,7 @@ func NewTexture(img image.Image, wrapR, wrapS int32) (*Texture, error) {
 	if rgba.Stride != rgba.Rect.Size().X*4 {
 		return nil, fmt.Errorf("Stride does not match")
 	}
-	rgba = transform.FlipV(rgba)
+	//rgba = transform.FlipV(rgba)
 
 	tex := &Texture{}
 	gl.GenTextures(1, &tex.handle)

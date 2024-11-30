@@ -9,11 +9,11 @@ import (
 func TestParse(t *testing.T) {
 	p := newTagParser()
 	details := &numericTagDetail{}
-	name, err := p.ParseInto("slider:{min:0,max:10}", details)
+	name, err := p.ParseInto("slider:{min:-1,max:10}", details)
 	assert.NoError(t, err)
 	assert.Equal(t, "slider", name)
 	assert.Equal(t, &numericTagDetail{
-		Min: 0, Max: 1,
+		Min: -1, Max: 10,
 	}, details)
 }
 
