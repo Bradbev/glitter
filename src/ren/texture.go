@@ -56,7 +56,7 @@ func NewTexture(img image.Image, wrapR, wrapS int32) (*Texture, error) {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR) // minification filter
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR) // magnification filter
 	sz := rgba.Rect.Size()
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.SRGB_ALPHA, int32(sz.X), int32(sz.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(rgba.Pix))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(sz.X), int32(sz.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(rgba.Pix))
 
 	gl.GenerateMipmap(tex.handle)
 

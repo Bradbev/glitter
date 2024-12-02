@@ -28,16 +28,19 @@ type TextureAndType struct {
 type TextureType int
 
 const (
-	Diffuse TextureType = iota
-	Specular
+	TexDiffuse TextureType = iota
+	TexSpecular
+	TexNormal
 )
 
 func (t TextureType) String() string {
 	switch t {
-	case Diffuse:
-		return "Diffuse"
-	case Specular:
-		return "Specular"
+	case TexDiffuse:
+		return "texture_diffuse"
+	case TexSpecular:
+		return "texture_specular"
+	case TexNormal:
+		return "texture_normal"
 	}
 	return ""
 }
@@ -59,14 +62,18 @@ func (m *Mesh) Draw(p *Program) {
 	p.UseProgram()
 	diffuse := 1
 	spec := 1
+	normal := 1
 	for i, t := range m.Textures {
 		switch t.Type {
-		case Diffuse:
+		case TexDiffuse:
 			p.Uniform1i(fmt.Sprintf("texture_diffuse%d", diffuse), int32(i))
 			diffuse++
-		case Specular:
+		case TexSpecular:
 			p.Uniform1i(fmt.Sprintf("texture_specular%d", spec), int32(i))
 			spec++
+		case TexNormal:
+			p.Uniform1i(fmt.Sprintf("texture_normal%d", spec), int32(i))
+			normal++
 		}
 		t.Texture.Bind(uint32(i))
 	}

@@ -17,7 +17,7 @@ type Camera struct {
 func NewCamera() *Camera {
 	return &Camera{
 		Forward:  mgl32.Vec3{0, -1, 0},
-		Up:       mgl32.Vec3{0, 0, 1},
+		Up:       mgl32.Vec3{0, 1, 0},
 		Fov:      45,
 		NearClip: 0.1,
 		FarClip:  100,

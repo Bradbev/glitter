@@ -97,4 +97,7 @@ void main() {
     //result += CalcSpotLight(spotLight, norm, FragPos, viewDir);    
 
 	FragColor = vec4(result, 1.0);
+ // gamma correct our scene to roughly match what I see online
+	//float gamma = 1.6;
+	//FragColor = vec4(pow(result, vec3(1.0 / gamma)), 1.0);
 }

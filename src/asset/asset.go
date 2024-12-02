@@ -1,11 +1,11 @@
 package asset
 
 import (
-	"bytes"
 	"fmt"
-	"image/png"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"unsafe"
 
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/bloeys/assimp-go/asig/asig"
@@ -14,16 +14,8 @@ import (
 )
 
 func castGglmVec3ToFloat32(in []gglm.Vec3) []float32 {
-	result := make([]float32, len(in)*3)
-	for i, v := range in {
-		result[i*3+0] = v.X()
-		result[i*3+1] = v.Z()
-		result[i*3+2] = v.Y()
-	}
-	return result
-
-	//data := (*float32)(unsafe.Pointer(&in[0].Data[0]))
-	//return unsafe.Slice(data, 3*len(in))
+	data := (*float32)(unsafe.Pointer(&in[0].Data[0]))
+	return unsafe.Slice(data, 3*len(in))
 }
 
 func copyGglmVec3ToUv2D(in []gglm.Vec3) []float32 {
@@ -65,17 +57,9 @@ func ImportFile(file string, postProcessFlags asig.PostProcess) (*ren.Scene, err
 		}
 
 		for _, mat := range scene.Materials {
-			for i := 0; i < asig.GetMaterialTextureCount(mat, asig.TextureTypeDiffuse); i++ {
-				info, err := asig.GetMaterialTexture(mat, asig.TextureTypeDiffuse, uint(i))
-				if err != nil {
-					continue
-				}
-				tex, err := ren.NewTextureFS(fs, info.Path, gl.REPEAT, gl.REPEAT)
-				if err != nil {
-					continue
-				}
-				mesh.Textures = append(mesh.Textures, ren.TextureAndType{Texture: tex, Type: ren.Diffuse})
-			}
+			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeDiffuse)...)
+			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeNormal)...)
+			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeSpecular)...)
 		}
 		result.Meshes = append(result.Meshes, mesh)
 	}
@@ -83,59 +67,34 @@ func ImportFile(file string, postProcessFlags asig.PostProcess) (*ren.Scene, err
 	return result, nil
 }
 
-func Test() {
-	scene, release, err := asig.ImportFile("obj.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices)
-	if err != nil {
-		panic(err)
-	}
-	defer release()
-
-	fmt.Printf("RootNode: %+v\n\n", scene.RootNode)
-
-	for i := 0; i < len(scene.Meshes); i++ {
-
-		println("Mesh:", i, "; Verts:", len(scene.Meshes[i].Vertices), "; Normals:", len(scene.Meshes[i].Normals), "; MatIndex:", scene.Meshes[i].MaterialIndex)
-		for j := 0; j < len(scene.Meshes[i].Vertices); j++ {
-			fmt.Printf("V(%v): (%v, %v, %v)\n", j, scene.Meshes[i].Vertices[j].X(), scene.Meshes[i].Vertices[j].Y(), scene.Meshes[i].Vertices[j].Z())
+func loadMaterialTextures(fsys fs.FS, material *asig.Material, textureType asig.TextureType) []ren.TextureAndType {
+	result := []ren.TextureAndType{}
+	for i := 0; i < asig.GetMaterialTextureCount(material, textureType); i++ {
+		info, err := asig.GetMaterialTexture(material, textureType, uint(i))
+		if err != nil {
+			continue
 		}
-	}
-
-	for i := 0; i < len(scene.Materials); i++ {
-
-		m := scene.Materials[i]
-		println("Material:", i, "; Props:", len(scene.Materials[i].Properties))
-		texCount := asig.GetMaterialTextureCount(m, asig.TextureTypeDiffuse)
-		fmt.Println("Texture count:", texCount)
-
-		if texCount > 0 {
-
-			texInfo, err := asig.GetMaterialTexture(m, asig.TextureTypeDiffuse, 0)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Printf("%v", texInfo)
+		tex, err := ren.NewTextureFS(fsys, info.Path, gl.REPEAT, gl.REPEAT)
+		if err != nil {
+			continue
 		}
+		result = append(result, ren.TextureAndType{
+			Texture: tex,
+			Type:    asigTexTypeToRenTexType(textureType),
+		})
 	}
-
-	ts := scene.Textures
-	for i := 0; i < len(ts); i++ {
-		t := ts[i]
-
-		fmt.Printf("T(%v): Name=%v, Hint=%v, Width=%v, Height=%v, NumTexels=%v\n", i, t.Filename, t.FormatHint, t.Width, t.Height, len(t.Data))
-
-		if t.FormatHint == "png" {
-			decodePNG(t.Data)
-		}
-	}
+	return result
 }
 
-func decodePNG(texels []byte) {
-
-	img, err := png.Decode(bytes.NewReader(texels))
-	if err != nil {
-		panic("wow2: " + err.Error())
+func asigTexTypeToRenTexType(textureType asig.TextureType) ren.TextureType {
+	switch textureType {
+	case asig.TextureTypeDiffuse:
+		return ren.TexDiffuse
+	case asig.TextureTypeSpecular:
+		return ren.TexSpecular
+	case asig.TextureTypeNormal:
+		return ren.TexNormal
+	default:
+		panic(fmt.Sprintf("Unknown texture %d", textureType))
 	}
-
-	println("C:", img.At(100, 100))
 }

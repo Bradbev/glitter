@@ -139,7 +139,7 @@ func (c *ImguiCamera) ProcessInput(app *App, dt float32) {
 			//sdl.WarpMouseGlobal(int32(c.mousePos.X()), int32(c.mousePos.Y()))
 			app.SetMousePos(c.mousePos.X(), c.mousePos.Y())
 			//c.mousePos = mousePos
-			rot := mgl32.QuatRotate(mgl32.DegToRad(delta.X()*dt), mgl32.Vec3{0, 0, 1})
+			rot := mgl32.QuatRotate(mgl32.DegToRad(delta.X()*dt), mgl32.Vec3{0, 1, 0})
 			cam.Forward = rot.Rotate(cam.Forward).Normalize()
 			rot = mgl32.QuatRotate(mgl32.DegToRad(delta.Y()*dt), right)
 			cam.Forward = rot.Rotate(cam.Forward).Normalize()
