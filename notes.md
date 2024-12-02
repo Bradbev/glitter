@@ -8,9 +8,8 @@
 
 - random crashes at startup
  - appears to be SDL/imgui thing
+ - runtime.LockOSThread must be called from init
 
 - I need to swizzle X/Y when loading obj files (because Z up)
 - object is mirrored about the Z axis (because Z up)
 - Use Y up!
-
-SO far, no GLFW rando crashes

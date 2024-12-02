@@ -6,12 +6,16 @@ import (
 	"time"
 
 	"github.com/AllenDang/cimgui-go/backend"
-	"github.com/AllenDang/cimgui-go/backend/glfwbackend"
+	"github.com/AllenDang/cimgui-go/backend/sdlbackend"
 	"github.com/AllenDang/cimgui-go/imgui"
 	"github.com/Bradbev/glitter/src/ren"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
+
+func init() {
+	runtime.LockOSThread()
+}
 
 type App struct {
 	OnPostCreate    func()
@@ -19,8 +23,8 @@ type App struct {
 	OnBeforeRender  func()
 	OnPostRender    func()
 	OnDrop          func(p []string)
-	//OnClose         func(b backend.Backend[sdlbackend.SDLWindowFlags])
-	OnClose func(b backend.Backend[glfwbackend.GLFWWindowFlags])
+	OnClose         func(b backend.Backend[sdlbackend.SDLWindowFlags])
+	//OnClose func(b backend.Backend[glfwbackend.GLFWWindowFlags])
 
 	BgColor     imgui.Vec4
 	Icons       *image.RGBA
@@ -28,8 +32,8 @@ type App struct {
 	Width       int
 	Height      int
 
-	//backend backend.Backend[sdlbackend.SDLWindowFlags]
-	backend backend.Backend[glfwbackend.GLFWWindowFlags]
+	backend backend.Backend[sdlbackend.SDLWindowFlags]
+	//backend backend.Backend[glfwbackend.GLFWWindowFlags]
 }
 
 func (a *App) GetSize() (int32, int32) {
@@ -51,8 +55,6 @@ func (a *App) Run(loop func(dt float32)) {
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
-
-	runtime.LockOSThread()
 
 	be := a.backend
 	be.SetAfterCreateContextHook(a.OnPostCreate)
@@ -79,16 +81,16 @@ func (a *App) Run(loop func(dt float32)) {
 func nop() {}
 
 func Default() *App {
-	//currentBackend, _ := backend.CreateBackend(sdlbackend.NewSDLBackend())
-	currentBackend, _ := backend.CreateBackend(glfwbackend.NewGLFWBackend())
+	currentBackend, _ := backend.CreateBackend(sdlbackend.NewSDLBackend())
+	//currentBackend, _ := backend.CreateBackend(glfwbackend.NewGLFWBackend())
 	return &App{
 		backend:         currentBackend,
 		OnPostCreate:    nop,
 		OnPostRender:    nop,
 		OnBeforeDestroy: nop,
 		OnDrop:          func(p []string) {},
-		//OnClose:         func(b backend.Backend[sdlbackend.SDLWindowFlags]) {},
-		OnClose: func(b backend.Backend[glfwbackend.GLFWWindowFlags]) {},
+		OnClose:         func(b backend.Backend[sdlbackend.SDLWindowFlags]) {},
+		//OnClose: func(b backend.Backend[glfwbackend.GLFWWindowFlags]) {},
 
 		WindowTitle: "Title",
 		Width:       1200,
@@ -142,7 +144,7 @@ func (c *ImguiCamera) ProcessInput(app *App, dt float32) {
 			delta := c.mousePos.Sub(mousePos).Mul(c.MouseSpeed)
 
 			wx, wy := app.backend.GetWindowPos()
-			//wx, wy = 0, 0 // sdl offsets
+			wx, wy = 0, 0 // sdl offsets
 			app.SetMousePos(c.mousePos.X()-float32(wx), c.mousePos.Y()-float32(wy))
 			//c.mousePos = mousePos
 			rot := mgl32.QuatRotate(mgl32.DegToRad(delta.X()*dt), mgl32.Vec3{0, 1, 0})
@@ -159,7 +161,6 @@ func (c *ImguiCamera) ProcessInput(app *App, dt float32) {
 func mousePos() mgl32.Vec2 {
 	p := imgui.MousePos()
 	mx, my := p.X, p.Y
-	//mx, my, _ := sdl.GetGlobalMouseState()
 	return mgl32.Vec2{
 		float32(mx),
 		float32(my),

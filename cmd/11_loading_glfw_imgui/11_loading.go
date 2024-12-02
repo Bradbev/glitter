@@ -163,7 +163,7 @@ func main() {
 
 		objShader = must(ren.NewProgramFS(assets, "vertex.vert", "obj.frag"))
 
-		scene = must(asset.ImportFile("/Users/bradbeveridge/dev2/3rdparty/LearnOpenGL/resources/objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
+		scene = must(asset.ImportFile("./assets/objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
 		scene.Setup()
 
 		runtime.GC()
