@@ -9,4 +9,5 @@ uniform sampler2D texture_normal1;
 
 void main() {
 	FragColor = texture(texture_diffuse1, TexCoords);
+//	FragColor = (texture(texture_diffuse1, TexCoords) + texture(texture_specular1, TexCoords)) / 2;
 }

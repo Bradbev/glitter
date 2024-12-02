@@ -75,7 +75,7 @@ func (m *Mesh) Draw(p *Program) {
 			p.Uniform1i(fmt.Sprintf("texture_normal%d", spec), int32(i))
 			normal++
 		}
-		t.Texture.Bind(uint32(i))
+		t.Texture.Bind(uint32(gl.TEXTURE0 + i))
 	}
 	m.vao.Enable()
 	gl.DrawElements(gl.TRIANGLES, int32(len(m.Indicies)), gl.UNSIGNED_INT, nil)
