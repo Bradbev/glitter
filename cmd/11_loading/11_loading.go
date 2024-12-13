@@ -295,8 +295,9 @@ func main() {
 	pointLights[3].Position = mgl32.Vec3{0.0, 0.0, -3.0}
 
 	assets = mergefs.Merge(embeddedAssets, //
-		os.DirFS("assets"),       // begin run from the root,
-		os.DirFS("../../assets")) // run from inside this dir,
+		os.DirFS("assets"), // begin run from the root,
+		os.DirFS("../../assets"),
+	) // run from inside this dir,
 	a := app.Default()
 	var (
 		objShader *ren.Program
@@ -312,7 +313,8 @@ func main() {
 
 		objShader = must(ren.NewProgramFS(assets, "vertex.vert", "obj.frag"))
 
-		scene = must(asset.ImportFile("/Users/bradbeveridge/dev2/3rdparty/LearnOpenGL/resources/objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
+		scene = must(asset.ImportFile(assets, "objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
+		//scene = must(asset.ImportFile(assets, "assets/objects/backpack/backpack.obj", asig.PostProcessTriangulate|asig.PostProcessJoinIdenticalVertices))
 		scene.Setup()
 
 		runtime.GC()

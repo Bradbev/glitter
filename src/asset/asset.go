@@ -3,7 +3,6 @@ package asset
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"unsafe"
 
@@ -27,15 +26,15 @@ func copyGglmVec3ToUv2D(in []gglm.Vec3) []float32 {
 	return result
 }
 
-func ImportFile(file string, postProcessFlags asig.PostProcess) (*ren.Scene, error) {
-	scene, release, err := asig.ImportFile(file, postProcessFlags)
+func ImportFile(fsys fs.FS, file string, postProcessFlags asig.PostProcess) (*ren.Scene, error) {
+	scene, release, err := asig.ImportFileEx(file, postProcessFlags, fsys)
 	defer release()
 	if err != nil {
 		return nil, err
 	}
 
-	fs := os.DirFS(filepath.Dir(file))
 	result := &ren.Scene{}
+	pathbase := filepath.Dir(file)
 
 	for _, m := range scene.Meshes {
 
@@ -56,10 +55,14 @@ func ImportFile(file string, postProcessFlags asig.PostProcess) (*ren.Scene, err
 			mesh.AddUvs(copyGglmVec3ToUv2D(texCoords))
 		}
 
+		// load textures
 		for _, mat := range scene.Materials {
-			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeDiffuse)...)
-			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeNormal)...)
-			mesh.Textures = append(mesh.Textures, loadMaterialTextures(fs, mat, asig.TextureTypeSpecular)...)
+			load := func(textureType asig.TextureType) {
+				mesh.Textures = append(mesh.Textures, loadMaterialTextures(fsys, pathbase, mat, textureType)...)
+			}
+			load(asig.TextureTypeDiffuse)
+			load(asig.TextureTypeNormal)
+			load(asig.TextureTypeSpecular)
 		}
 		result.Meshes = append(result.Meshes, mesh)
 	}
@@ -67,14 +70,14 @@ func ImportFile(file string, postProcessFlags asig.PostProcess) (*ren.Scene, err
 	return result, nil
 }
 
-func loadMaterialTextures(fsys fs.FS, material *asig.Material, textureType asig.TextureType) []ren.TextureAndType {
+func loadMaterialTextures(fsys fs.FS, pathbase string, material *asig.Material, textureType asig.TextureType) []ren.TextureAndType {
 	result := []ren.TextureAndType{}
 	for i := 0; i < asig.GetMaterialTextureCount(material, textureType); i++ {
 		info, err := asig.GetMaterialTexture(material, textureType, uint(i))
 		if err != nil {
 			continue
 		}
-		tex, err := ren.NewTextureFS(fsys, info.Path, gl.REPEAT, gl.REPEAT)
+		tex, err := ren.NewTextureFS(fsys, filepath.Join(pathbase, info.Path), gl.REPEAT, gl.REPEAT)
 		if err != nil {
 			continue
 		}
